@@ -2,6 +2,10 @@
 
 Which remote branch is my current branch closest to?
 
+<img src="https://raw.githubusercontent.com/hwei/git-nearest/main/docs/img/table.svg" alt="git nearest output: a table of remote branches">
+
+<details><summary>as text</summary>
+
 ```console
 $ git nearest
 @  HEAD -> fix-typo  [1 staged, 1 untracked]
@@ -9,6 +13,7 @@ $ git nearest
 ↑8 ↓0  origin/feature/login  51eef8f5
 ↑9 ↓1  origin/release/1.2    fc1afa3b
 ```
+</details>
 
 The first line shows where HEAD is and the state of the working tree: `[clean]`, or counts such as
 `[2 staged, 3 modified, 1 untracked]` (conflicted files turn it red). That is the thing to check
@@ -24,6 +29,10 @@ instead of having one picked for you.
 `git nearest -g` draws how HEAD and those branches relate, in the style of
 [`jj log`](https://docs.jj-vcs.dev/): newest on top (by commit date, parents never above their children), and runs of ordinary commits folded into a
 `~  (n)` row on the vertical line.
+
+<img src="https://raw.githubusercontent.com/hwei/git-nearest/main/docs/img/graph.svg" alt="git nearest -g output: a graph of HEAD and remote branches">
+
+<details><summary>as text</summary>
 
 ```console
 $ git nearest -g
@@ -42,11 +51,12 @@ $ git nearest -g
 ○  5a42fea0  merge-base
 ~ (n) = n commits folded between
 ```
+</details>
 
 Only HEAD, the branch tips and the merge-bases between them are drawn. `(3)` means three commits sit
 between the nodes above and below it.
 
-Both examples are real output from a synthetic repository built by
+Both examples (images and text) are real output from a synthetic repository built by
 [`scripts/demo.py`](https://github.com/hwei/git-nearest/blob/main/scripts/demo.py).
 
 ## Install

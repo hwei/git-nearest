@@ -12,10 +12,15 @@ Settled. Do not reopen without the user asking. Add new entries at the bottom: w
 - **Ranking is a heuristic** (fewest ahead, then fewest behind). git has no notion of a parent branch;
   the README says so rather than pretending otherwise.
 - **README examples are synthetic and generated.** `scripts/demo.py` builds a throwaway repo with fixed
-  commit dates and prints the output; paste it into the README as text. Never use output from the
-  user's work repositories, whose branch names are internal. Text, not an SVG/PNG screenshot: rich's
-  SVG export uses Fira Code, which turns `->` into a ligature and draws `─` with gaps, so the graph
-  looked wrong.
+  commit dates and prints the output. Never use output from the user's work repositories, whose branch
+  names are internal.
+- **README examples are SVG images, with the text in a `<details>` below.** GitHub strips ANSI and
+  inline styles, so color needs an image. `demo.py` writes the SVGs itself (stdlib, no rich, no
+  `freeze`): every character sits at a fixed cell `x` so alignment does not depend on the font,
+  ligatures are off, and box-drawing glyphs and `○` are drawn as paths, since fonts draw them with
+  gaps (rich's export did, and turned `->` into a ligature). Dark terminal background, one image for
+  both GitHub themes. Image links are absolute `raw.githubusercontent.com` URLs because PyPI renders
+  the README too and cannot resolve relative paths.
 - **PyPI publishing via Trusted Publishing** (GitHub Actions on a version tag), not a stored API token.
 - **Fold counts `(n)` are dim, not colored.** They are secondary information; yellow competed with the
   branch names. Yellow stays for the working tree note.

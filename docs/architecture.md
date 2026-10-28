@@ -13,7 +13,7 @@ src/git_nearest/
   color.py    Painter + ANSI codes
 tests/        conftest.py builds throwaway repos per test
 scripts/
-  demo.py     builds the synthetic repo behind the README examples
+  demo.py     builds the synthetic repo behind the README examples, renders them to docs/img/*.svg
 ```
 
 The console script `git-nearest` points at `git_nearest.cli:main`. git runs any `git-<name>` on

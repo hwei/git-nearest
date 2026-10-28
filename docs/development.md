@@ -15,8 +15,11 @@ CI (`.github/workflows/test.yml`) runs `uv run pytest -q` on ubuntu / windows / 
 
 ## README examples
 
-After changing output, run `uv run python scripts/demo.py` and paste both blocks into `README.md`.
-The output is deterministic; if it changes without an output change, something is off.
+After changing output, run `uv run python scripts/demo.py`: it rewrites `docs/img/table.svg` and
+`docs/img/graph.svg` and prints the plain text, which goes into the `<details>` blocks in `README.md`.
+The output is deterministic; if it changes without an output change, something is off. To check the
+SVGs, open them in a browser through an `<img>` tag (as GitHub does, so only system fonts apply).
+The README points at the images on `main`, so they show up there only after a push.
 
 ## Releasing
 
