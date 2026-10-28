@@ -14,6 +14,12 @@ Status as of the last doc update. Tick items when done; remove ticked items afte
 - [x] Trusted Publisher registered on pypi.org.
 - [x] Tagged `v0.1.0`; published to https://pypi.org/project/git-nearest/.
 
+## Unreleased (after 0.1.0)
+
+- [x] Dim the fold counts in the graph.
+- [x] `-b/--branch REV` to measure from a branch or commit other than HEAD.
+- [ ] Release as 0.2.0 (bump version, tag). **Confirm with the user first.**
+
 ## Later
 
 - [ ] Optional: answer the Stack Overflow question "How to find the nearest parent of a Git branch"

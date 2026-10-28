@@ -5,7 +5,7 @@
 ```
 src/git_nearest/
   cli.py      argparse, color decision, Windows console setup, wiring
-  refs.py     rank(): ahead/behind for every ref under refs/remotes, sorted
+  refs.py     rank(): ahead/behind of a base commit against every ref under refs/remotes, sorted
   table.py    default output: head line + one row per ref
   graph.py    jj-log-style graph (-g)
   status.py   git status --porcelain=v1 -> counts -> "[clean]" / "[2 staged, ...]"
@@ -21,9 +21,10 @@ The console script `git-nearest` points at `git_nearest.cli:main`. git runs any 
 
 ## Ranking (`refs.py`)
 
-One `git for-each-ref --format=%(ahead-behind:HEAD)` call covers every remote ref (git >= 2.41).
+The base is HEAD, or the commit `-b REV` resolves to (`cli.py` resolves it once and passes the sha down;
+the working tree status is only read for HEAD). One `git for-each-ref --format=%(ahead-behind:<base>)` call covers every remote ref (git >= 2.41).
 If it returns nothing (older git), fall back to one `rev-list --left-right --count ref...HEAD` per ref.
-`*/HEAD` symbolic refs are skipped. Sort key: `(ahead, behind, refname)`. Refs with identical tips all
+`*/HEAD` symbolic refs and the ref named by `-b` itself are skipped. Sort key: `(ahead, behind, refname)`. Refs with identical tips all
 appear, so ties are visible.
 
 ## Table (`table.py`, `status.py`)
@@ -47,5 +48,6 @@ Only HEAD, ref tips and the merge-bases between them are drawn; everything else 
 
 ## Output conventions
 
-HEAD marker `@`, nodes `○`, folded rows `~  (n)`, a legend line at the bottom of the graph. Color only
+HEAD marker `@` (also marks the `-b` base), nodes `○`, folded rows `~  (n)` with the count dimmed (secondary
+information), a legend line at the bottom of the graph. Color only
 when `--color always`, or `auto` on a TTY without `NO_COLOR`.

@@ -63,12 +63,13 @@ The package installs an executable called `git-nearest`; git runs any `git-<name
 ## Usage
 
 ```
-git nearest [N] [-g] [--no-status] [--color {auto,always,never}] [--no-color]
+git nearest [N] [-b REV] [-g] [--no-status] [--color {auto,always,never}] [--no-color]
 ```
 
 | | |
 |---|---|
 | `N` | how many branches to show (default 5) |
+| `-b`, `--branch REV` | measure from this branch or commit instead of HEAD; skips the working tree check, which only describes HEAD |
 | `-g`, `--graph` | draw the graph instead of the table |
 | `--no-status` | skip the working tree check (it runs `git status`, which can be slow on huge repositories) |
 | `--color` | `auto` (default) colors only on a terminal and respects `NO_COLOR` |

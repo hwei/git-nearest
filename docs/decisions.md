@@ -17,3 +17,8 @@ Settled. Do not reopen without the user asking. Add new entries at the bottom: w
   SVG export uses Fira Code, which turns `->` into a ligature and draws `─` with gaps, so the graph
   looked wrong.
 - **PyPI publishing via Trusted Publishing** (GitHub Actions on a version tag), not a stored API token.
+- **Fold counts `(n)` are dim, not colored.** They are secondary information; yellow competed with the
+  branch names. Yellow stays for the working tree note.
+- **`-b/--branch REV` picks the base to measure from** (default HEAD). Any branch or commit works. The
+  working tree status is skipped for a non-HEAD base, because it describes HEAD, and the line above the
+  table shows REV as typed. If REV is itself a remote ref it is left out of the list.

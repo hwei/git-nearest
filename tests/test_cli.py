@@ -79,3 +79,30 @@ def test_bad_limit(forked):
 def test_color_always_emits_escapes(forked, capsys):
     main(["--color", "always"])
     assert "\033[" in capsys.readouterr().out
+
+
+def test_branch_measures_from_another_rev(forked, capsys):
+    _, out, _ = run(capsys, "-b", "main")
+    assert out.splitlines() == [
+        "@  main",
+        "↑1 ↓0  origin/other  H",
+        "↑5 ↓0  origin/feat   H",
+        "↑6 ↓0  origin/main   H",
+    ]
+
+
+def test_branch_skips_itself_when_remote(forked, capsys):
+    _, out, _ = run(capsys, "-b", "origin/other")
+    assert "origin/other" not in out.splitlines()[1]
+    assert out.splitlines()[0] == "@  origin/other"
+
+
+def test_branch_graph_is_labelled(forked, capsys):
+    _, out, _ = run(capsys, "-g", "-b", "feat")
+    assert any(l.startswith("@") and l.endswith("H  feat, origin/feat") for l in out.splitlines())
+
+
+def test_bad_branch(forked, capsys):
+    code, _, err = run(capsys, "-b", "nope")
+    assert code == 1
+    assert "nope" in err

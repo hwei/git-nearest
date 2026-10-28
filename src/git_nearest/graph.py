@@ -10,9 +10,8 @@ LINE_GLYPHS = set("│├┴┼╯╮┤─~")  # │ ├ ┴ ┼ ╯ ╮ ┤ �
 LEGEND = "~ (n) = n commits folded between"
 
 
-def render(refs, paint, head_note=None):
-    head = git("rev-parse", "HEAD")
-    branch = git("symbolic-ref", "--short", "-q", "HEAD", check=False)
+def render(refs, paint, head, label, head_note=None):
+    """head: the commit everything is measured from; label: how to name it (e.g. "HEAD -> main")."""
     names = {}  # commit -> remote refs pointing at it
     shas = git("rev-parse", *["refs/remotes/" + r for r in refs]).split()
     for ref, sha in zip(refs, shas):
@@ -75,7 +74,7 @@ def render(refs, paint, head_note=None):
     def node_text(c):
         parts = []
         if c == head:
-            parts.append(paint(color.GREEN_BOLD, "HEAD -> " + branch if branch else "HEAD (detached)"))
+            parts.append(paint(color.GREEN_BOLD, label))
         parts += [paint(color.CYAN, n) for n in sorted(names.get(c, []))]
         if not parts:
             parts.append(paint(color.DIM, "merge-base"))
@@ -136,7 +135,7 @@ def render(refs, paint, head_note=None):
                 cells[i] = "┼" if lanes[i] else "─"
             emit(cells, fill=range(lo, hi))
         if folded.get(c):
-            emit({k: "~"}, text=paint(color.YELLOW, "(%d)" % folded[c]))
+            emit({k: "~"}, text=paint(color.DIM, "(%d)" % folded[c]))
 
     pending = {c: 0 for c in nodes}
     for c in nodes:
