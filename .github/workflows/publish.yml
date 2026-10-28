@@ -12,8 +12,10 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          enable-cache: false
       - name: Check the tag matches both version strings
         run: |
           version=$(grep -m1 '^version' pyproject.toml | cut -d'"' -f2)
