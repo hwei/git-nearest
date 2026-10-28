@@ -11,6 +11,9 @@ Settled. Do not reopen without the user asking. Add new entries at the bottom: w
   enough to be familiar.
 - **Ranking is a heuristic** (fewest ahead, then fewest behind). git has no notion of a parent branch;
   the README says so rather than pretending otherwise.
-- **README examples are synthetic.** Output is generated from throwaway repos, never from the user's
-  work repositories, whose branch names are internal.
+- **README examples are synthetic and generated.** `scripts/demo.py` builds a throwaway repo with fixed
+  commit dates and prints the output; paste it into the README as text. Never use output from the
+  user's work repositories, whose branch names are internal. Text, not an SVG/PNG screenshot: rich's
+  SVG export uses Fira Code, which turns `->` into a ligature and draws `─` with gaps, so the graph
+  looked wrong.
 - **PyPI publishing via Trusted Publishing** (GitHub Actions on a version tag), not a stored API token.

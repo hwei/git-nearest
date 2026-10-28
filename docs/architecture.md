@@ -12,6 +12,8 @@ src/git_nearest/
   gitutil.py  git() subprocess wrapper, GitError
   color.py    Painter + ANSI codes
 tests/        conftest.py builds throwaway repos per test
+scripts/
+  demo.py     builds the synthetic repo behind the README examples
 ```
 
 The console script `git-nearest` points at `git_nearest.cli:main`. git runs any `git-<name>` on

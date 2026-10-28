@@ -13,6 +13,11 @@ dev dependency.
 
 CI (`.github/workflows/test.yml`) runs `uv run pytest -q` on ubuntu / windows / macos × Python 3.8 / 3.13.
 
+## README examples
+
+After changing output, run `uv run python scripts/demo.py` and paste both blocks into `README.md`.
+The output is deterministic; if it changes without an output change, something is off.
+
 ## Tests
 
 `tests/conftest.py` provides a `Repo` helper that creates throwaway repositories with an isolated git

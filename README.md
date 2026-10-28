@@ -4,10 +4,10 @@ Which remote branch is my current branch closest to?
 
 ```console
 $ git nearest
-@  HEAD -> work  [clean]
-↑3 ↓0  origin/other  82fe5dee
-↑7 ↓0  origin/feat   8b947de7
-↑8 ↓0  origin/main   d6034859
+@  HEAD -> fix-typo  [1 staged, 1 untracked]
+↑2 ↓0  origin/main           574e9395
+↑8 ↓0  origin/feature/login  51eef8f5
+↑9 ↓1  origin/release/1.2    fc1afa3b
 ```
 
 The first line shows where HEAD is and the state of the working tree: `[clean]`, or counts such as
@@ -27,22 +27,27 @@ instead of having one picked for you.
 
 ```console
 $ git nearest -g
-@  e6a7a57e  HEAD -> work  [clean]
-~  (2)
-○  82fe5dee  origin/other
+@  ae22273d  HEAD -> fix-typo  [1 staged, 1 untracked]
+~  (1)
+○  574e9395  origin/main
 ├─╮
+~ │  (3)
+│ ○  51eef8f5  origin/feature/login
+│ ~  (2)
+│ │ ○  2cf4c0c2  origin/release/1.2
+├─┼─╯
+○ │  fc1afa3b  merge-base
 ~ │  (1)
-○ │  8b947de7  origin/feat
-~ │  (2)
-│ ○  d6034859  origin/main
-│ ~  (1)
 ├─╯
-○  a01d21a0  merge-base
+○  5a42fea0  merge-base
 ~ (n) = n commits folded between
 ```
 
-Only HEAD, the branch tips and the merge-bases between them are drawn. `(2)` means two commits sit
+Only HEAD, the branch tips and the merge-bases between them are drawn. `(3)` means three commits sit
 between the nodes above and below it.
+
+Both examples are real output from a synthetic repository built by
+[`scripts/demo.py`](scripts/demo.py).
 
 ## Install
 

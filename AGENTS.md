@@ -8,6 +8,7 @@ as a table or a jj-log-style graph. Pure Python standard library, `requires-pyth
 ```console
 uv run pytest            # run the tests
 uv run git-nearest -g    # run from source inside any git repo
+uv run python scripts/demo.py   # regenerate the README examples
 uv build                 # build sdist + wheel into dist/
 ```
 
