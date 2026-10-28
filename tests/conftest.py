@@ -38,6 +38,9 @@ def repo(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     for k, v in ENV.items():
         monkeypatch.setenv(k, v)
+    # one fixed second: the graph orders by date, so commits straddling a second would change the layout
+    monkeypatch.setenv("GIT_COMMITTER_DATE", "1000000000 +0000")
+    monkeypatch.setenv("GIT_AUTHOR_DATE", "1000000000 +0000")
     return r
 
 

@@ -40,6 +40,9 @@ Use it for every test that needs history; do not depend on the developer's git c
 - **Every test commit needs a unique message.** Two branches committing from the same parent in the
   same second with the same message produce byte-identical commits, which silently merges the branches
   and makes counts flaky. `Repo.commit()` numbers messages for this reason; keep it.
+- **Test commits share one fixed timestamp.** The graph orders rows by committer date, so a fixture whose
+  commits straddle a second boundary changes the layout (it did on a slow Windows runner). The `repo`
+  fixture pins `GIT_COMMITTER_DATE`; a test that needs real ordering sets its own dates.
 - **`git()` strips stdout by default**, which eats the leading space of ` M file` in porcelain output.
   `status.read()` passes `strip=False`. Do the same for any whitespace-significant output.
 - **`git status` is the slow part** on large repositories (a few hundred ms), hence `--no-status`.
