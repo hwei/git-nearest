@@ -1,0 +1,7 @@
+version: 2
+updates:
+  # Keeps the pinned actions in .github/workflows current (setup-uv has no floating major tag).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

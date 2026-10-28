@@ -25,3 +25,6 @@ Settled. Do not reopen without the user asking. Add new entries at the bottom: w
 - **Graph rows are ordered newest committer date first, subject to children-before-parents.** Was
   alphabetical by ref with HEAD's line leftmost; that looked arbitrary against the timeline. Cost: HEAD's
   line is no longer guaranteed leftmost or contiguous, and clock skew can break strict time order.
+- **Actions are pinned and updated by Dependabot** (`.github/dependabot.yml`, monthly, github-actions only).
+  `astral-sh/setup-uv` has no floating major tag, so it is pinned to an exact version. There is no pip
+  ecosystem entry: the package has no runtime dependencies.
