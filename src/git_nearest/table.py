@@ -9,11 +9,11 @@ def render(rows, paint, base, head_line=None):
     wa, wb, wn = max(map(len, ups)), max(map(len, downs)), max(len(r.ref) for r in rows)
     lines = [head_line] if head_line else []
     for r, up, down in zip(rows, ups, downs):
-        base = git("merge-base", "refs/remotes/" + r.ref, base, check=False)[:8]
+        mb = git("merge-base", "refs/remotes/" + r.ref, base, check=False)[:8]
         lines.append("%s %s  %s  %s" % (
             paint(color.GREEN, up.ljust(wa)),
             paint(color.RED, down.ljust(wb)),
             r.ref.ljust(wn),
-            paint(color.DIM, base),
+            paint(color.DIM, mb),
         ))
     return lines

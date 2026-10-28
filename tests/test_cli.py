@@ -23,6 +23,13 @@ def test_table_orders_by_ahead_then_behind(forked, capsys):
     ]
 
 
+def test_each_row_has_its_own_merge_base(forked, capsys):
+    main(["--color", "never"])
+    for line in capsys.readouterr().out.splitlines()[1:]:
+        _, _, ref, mb = line.split()
+        assert mb == forked.git("merge-base", "HEAD", "refs/remotes/" + ref)[:8]
+
+
 def test_limit(forked, capsys):
     _, out, _ = run(capsys, "1")
     assert out.splitlines() == ["@  HEAD -> work  [clean]", "↑3 ↓0  origin/other  H"]
