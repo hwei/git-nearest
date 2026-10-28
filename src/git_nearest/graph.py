@@ -55,8 +55,14 @@ def render(refs, paint, head, label, head_note=None):
     def on_head_line(c):
         return c == head or bool(allanc[head] & node_bit[c]) or bool(allanc[c] & node_bit[head])
 
+    # Newest first among the nodes that are ready to draw; children still always come before parents.
+    when = {}
+    for line in git("show", "-s", "--format=%H %ct", *nodes).splitlines():
+        sha, ts = line.split()
+        when[sha] = int(ts)
+
     def sort_key(c):
-        return (not on_head_line(c), sorted(names.get(c, [c]))[0])
+        return (-when[c], not on_head_line(c), sorted(names.get(c, [c]))[0])
 
     above = {}   # node -> nearest ancestor nodes, head line first
     folded = {}  # node -> commits between it and those ancestors

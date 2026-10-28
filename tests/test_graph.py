@@ -70,3 +70,21 @@ def test_unrelated_histories_do_not_crash(repo, capsys):
     lines = graph(capsys)
     assert any("origin/main" in line for line in lines)
     assert any("HEAD -> other" in line for line in lines)
+
+
+def test_newest_first_among_branches(repo, capsys, monkeypatch):
+    def commit_at(ts):
+        monkeypatch.setenv("GIT_COMMITTER_DATE", "%d +0000" % ts)
+        repo.commit()
+
+    commit_at(1000000000)
+    repo.git("checkout", "-q", "-b", "side")
+    commit_at(1000000100)
+    repo.remote("origin/a-old")  # sorts first by name but is older
+    repo.git("checkout", "-q", "main")
+    commit_at(1000000200)
+    repo.remote("origin/z-new")
+    commit_at(1000000300)
+    lines = graph(capsys)
+    refs = [l for l in lines if "origin/" in l]
+    assert [l.split()[-1] for l in refs] == ["origin/z-new", "origin/a-old"]

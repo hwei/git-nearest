@@ -22,7 +22,7 @@ instead of having one picked for you.
 ## Graph
 
 `git nearest -g` draws how HEAD and those branches relate, in the style of
-[`jj log`](https://docs.jj-vcs.dev/): newest on top, and runs of ordinary commits folded into a
+[`jj log`](https://docs.jj-vcs.dev/): newest on top (by commit date, parents never above their children), and runs of ordinary commits folded into a
 `~  (n)` row on the vertical line.
 
 ```console
@@ -32,12 +32,12 @@ $ git nearest -g
 ○  574e9395  origin/main
 ├─╮
 ~ │  (3)
-│ ○  51eef8f5  origin/feature/login
-│ ~  (2)
 │ │ ○  2cf4c0c2  origin/release/1.2
 ├─┼─╯
 ○ │  fc1afa3b  merge-base
 ~ │  (1)
+│ ○  51eef8f5  origin/feature/login
+│ ~  (2)
 ├─╯
 ○  5a42fea0  merge-base
 ~ (n) = n commits folded between

@@ -43,7 +43,9 @@ Only HEAD, ref tips and the merge-bases between them are drawn; everything else 
 3. A commit is a node if it is a tip or has no child with the same mask (that is a merge-base).
 4. `allanc` bitmasks give each node its nearest ancestor nodes.
 5. Fold count for an edge = `rev-list --count node ^ancestors` minus 1, drawn as a `~  (n)` row.
-6. Nodes are emitted in a Kahn order that keeps HEAD's line leftmost; lanes are assigned jj/git-log
+6. Nodes are emitted in a Kahn order: among the nodes ready to draw, the newest committer date goes first
+   (ties: HEAD's line, then ref name). Children always precede parents, so with clock skew a row can be
+   older than the one below it. Lanes are assigned jj/git-log
    style, with `├─╯` / `├─╮` joining and splitting them.
 
 ## Output conventions

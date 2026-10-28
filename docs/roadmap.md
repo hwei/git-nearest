@@ -18,6 +18,7 @@ Status as of the last doc update. Tick items when done; remove ticked items afte
 
 - [x] Dim the fold counts in the graph.
 - [x] `-b/--branch REV` to measure from a branch or commit other than HEAD.
+- [x] Graph rows ordered newest first by committer date (topological order still wins).
 - [ ] Release as 0.2.0 (bump version, tag). **Confirm with the user first.**
 
 ## Later

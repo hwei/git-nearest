@@ -22,3 +22,6 @@ Settled. Do not reopen without the user asking. Add new entries at the bottom: w
 - **`-b/--branch REV` picks the base to measure from** (default HEAD). Any branch or commit works. The
   working tree status is skipped for a non-HEAD base, because it describes HEAD, and the line above the
   table shows REV as typed. If REV is itself a remote ref it is left out of the list.
+- **Graph rows are ordered newest committer date first, subject to children-before-parents.** Was
+  alphabetical by ref with HEAD's line leftmost; that looked arbitrary against the timeline. Cost: HEAD's
+  line is no longer guaranteed leftmost or contiguous, and clock skew can break strict time order.
