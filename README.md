@@ -63,7 +63,7 @@ The package installs an executable called `git-nearest`; git runs any `git-<name
 ## Usage
 
 ```
-git nearest [N] [-b REV] [-g] [--no-status] [--color {auto,always,never}] [--no-color]
+git nearest [N] [-b REV] [-g] [--no-status] [--color {auto,always,never}] [--no-color] [--version]
 ```
 
 | | |
@@ -73,6 +73,7 @@ git nearest [N] [-b REV] [-g] [--no-status] [--color {auto,always,never}] [--no-
 | `-g`, `--graph` | draw the graph instead of the table |
 | `--no-status` | skip the working tree check (it runs `git status`, which can be slow on huge repositories) |
 | `--color` | `auto` (default) colors only on a terminal and respects `NO_COLOR` |
+| `--version` | print the version and exit |
 
 ## How it works
 
