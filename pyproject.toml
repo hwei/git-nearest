@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "git-nearest"
-version = "0.2.0"
+version = "0.2.1"
 description = "Find the remote branches closest to your current branch, with ahead/behind counts and a compact jj-style graph."
 readme = "README.md"
 license = { text = "MIT" }
