@@ -4,10 +4,9 @@ Status as of the last doc update. Tick items when done; remove ticked items afte
 
 ## Release 0.1.0
 
-- [ ] Create the public GitHub repo and push: `gh repo create hwei/git-nearest --public --source . --push`.
+- [x] Create the public GitHub repo and push: `gh repo create hwei/git-nearest --public --source . --push`.
   **Confirm with the user first.**
-- [ ] First CI run. The workflow has never run. Likely trouble: Python 3.8 syntax, Windows
-  path/encoding in tests, a runner git older than 2.41 (fallback should cover it).
+- [x] First CI run: green on ubuntu / windows / macos × Python 3.8 / 3.13.
 - [ ] Replace the hand-written README examples with a real screenshot or asciinema recording of a
   throwaway repo.
 - [ ] Add GitHub topics: `git`, `git-tools`, `cli`, `branch`.
