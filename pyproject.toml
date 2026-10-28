@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "git-nearest"
+version = "0.1.0"
+description = "Find the remote branches closest to your current branch, with ahead/behind counts and a compact jj-style graph."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.8"
+authors = [{ name = "hwei", email = "814065+hwei@users.noreply.github.com" }]
+keywords = ["git", "branch", "cli", "merge-base", "parent-branch"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Version Control :: Git",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/hwei/git-nearest"
+Issues = "https://github.com/hwei/git-nearest/issues"
+
+# An executable named git-<name> on PATH is run by `git <name>`.
+[project.scripts]
+git-nearest = "git_nearest.cli:main"
+
+[dependency-groups]
+dev = ["pytest"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/git_nearest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
