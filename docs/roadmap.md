@@ -11,9 +11,8 @@ Status as of the last doc update. Tick items when done; remove ticked items afte
   `docs/decisions.md`).
 - [x] Add GitHub topics: `git`, `git-tools`, `cli`, `branch`.
 - [x] Publish workflow `.github/workflows/publish.yml` (tag `v*`, Trusted Publishing, environment `pypi`).
-- [ ] The user registers the pending publisher on pypi.org (walk them through it, see
-  `docs/development.md` → Releasing).
-- [ ] Tag `v0.1.0` and push the tag. **Confirm before pushing the tag: it uploads to PyPI.**
+- [x] Trusted Publisher registered on pypi.org.
+- [x] Tagged `v0.1.0`; published to https://pypi.org/project/git-nearest/.
 
 ## Later
 
