@@ -34,5 +34,9 @@ dev = ["pytest"]
 [tool.hatch.build.targets.wheel]
 packages = ["src/git_nearest"]
 
+# Allowlist: hatch ignores .git/info/exclude, so local-only files would otherwise ship.
+[tool.hatch.build.targets.sdist]
+include = ["src/git_nearest", "tests", "README.md", "LICENSE", "pyproject.toml"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -47,7 +47,7 @@ Only HEAD, the branch tips and the merge-bases between them are drawn. `(3)` mea
 between the nodes above and below it.
 
 Both examples are real output from a synthetic repository built by
-[`scripts/demo.py`](scripts/demo.py).
+[`scripts/demo.py`](https://github.com/hwei/git-nearest/blob/main/scripts/demo.py).
 
 ## Install
 
