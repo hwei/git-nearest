@@ -53,6 +53,8 @@ Use it for every test that needs history; do not depend on the developer's git c
 - **Windows console:** the legacy console needs `os.system("")` to enable ANSI. When stdout is not a
   TTY it is reconfigured to UTF-8. On a TTY, Python writes through the console API, so `○│├╯`
   render regardless of code page.
+- **PTY assertions:** ignore the kernel's `PENDIN` bit when comparing terminal settings before and
+  after the TUI. Darwin sets it when restoring canonical input mode.
 - **`NO_COLOR` may be set in agent sandboxes.** Use `--color always` to see escapes.
 - **The sdist is an allowlist** (`[tool.hatch.build.targets.sdist]` in `pyproject.toml`): hatch reads
   `.gitignore` but not `.git/info/exclude`, so local-only files like `HANDOFF.md` would otherwise ship.

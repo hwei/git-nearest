@@ -76,7 +76,12 @@ def test_quit_leaves_final_interactive_view_as_cli_output(forked):
         read_through(expected.decode("utf-8"))
         assert process.wait(timeout=10) == 0
         assert bytes(output).split(b"\x1b[?1049l", 1)[1] == expected
-        assert termios.tcgetattr(slave) == original_terminal
+        restored_terminal = termios.tcgetattr(slave)
+        # Darwin marks pending input for retyping when canonical mode is enabled.
+        pending_input = getattr(termios, "PENDIN", 0)
+        original_terminal[3] &= ~pending_input
+        restored_terminal[3] &= ~pending_input
+        assert restored_terminal == original_terminal
         assert forked.git("rev-parse", "HEAD") == head
     finally:
         if process is not None and process.poll() is None:
