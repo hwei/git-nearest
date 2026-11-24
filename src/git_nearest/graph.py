@@ -6,7 +6,8 @@ from .gitutil import git
 
 LINE_GLYPHS = set("│├┴┼╯╮┤─~")
 LEGEND = "~ (n) = n commits folded between"
-Row = namedtuple("Row", "text oid kind", defaults=(None, "text"))
+Row = namedtuple("Row", "text oid kind detail_prefix", defaults=(None, "text", ""))
+_Continuation = namedtuple("_Continuation", "anchor outside")
 
 
 def _history(tips):
@@ -98,6 +99,41 @@ def _region_args(anchor, boundary):
     return [anchor, *("^" + oid for oid in sorted(boundary))]
 
 
+def _labels(commit, paint, names, center, label, actual_head):
+    parts = []
+    if commit == center:
+        parts.append(paint(color.GREEN_BOLD, label))
+    elif commit == actual_head:
+        parts.append(paint(color.GREEN, "HEAD"))
+    parts.extend(paint(color.CYAN, name) for name in sorted(names.get(commit, [])))
+    return parts
+
+
+def _commit_text(commit, paint, parts):
+    text = paint(color.DIM, commit[:8])
+    return text + "  " + ", ".join(parts) if parts else text
+
+
+def _marker(commit, paint, names, center, actual_head):
+    if commit == center:
+        return paint(color.GREEN_BOLD, "@")
+    if commit == actual_head:
+        return paint(color.GREEN, "●")
+    return paint(color.CYAN if commit in names else color.DIM, "○")
+
+
+def with_details(rows, details):
+    """Insert commit details into a tuple of graph rows without rebuilding its lanes."""
+    if not details:
+        return rows
+    oid, lines = details
+    for index, row in enumerate(rows):
+        if row.oid == oid and row.kind == "commit":
+            details_rows = tuple(Row(row.detail_prefix + line) for line in lines)
+            return rows[:index + 1] + details_rows + rows[index + 1:]
+    return rows + tuple(Row(line) for line in lines)
+
+
 def render_map(names, paint, center, label, center_note=None, *,
                actual_head=None, nearest=(), expanded=(), details=None):
     """Return commit, fold and text rows for one minimap view.
@@ -140,19 +176,12 @@ def render_map(names, paint, center, label, center_note=None, *,
             folded[commit] = int(git("rev-list", "--count", *_region_args(commit, boundary))) - 1
 
     def node_text(commit):
-        parts = []
-        if commit == center:
-            parts.append(paint(color.GREEN_BOLD, label))
-        elif commit == actual_head:
-            parts.append(paint(color.GREEN, "HEAD"))
-        parts += [paint(color.CYAN, name) for name in sorted(names.get(commit, []))]
+        parts = _labels(commit, paint, names, center, label, actual_head)
         if not parts and commit in merge_bases:
             parts.append(paint(color.DIM, "merge-base"))
         if commit in unfolded and len(parents[commit]) > 1:
             parts.append(paint(color.DIM, "merge"))
-        text = paint(color.DIM, commit[:8])
-        if parts:
-            text += "  " + ", ".join(parts)
+        text = _commit_text(commit, paint, parts)
         if commit in nearest:
             text += "  " + paint(color.GREEN, "[nearest]")
         if commit == center and center_note:
@@ -160,24 +189,99 @@ def render_map(names, paint, center, label, center_note=None, *,
         return text
 
     def marker(commit):
-        if commit == center:
-            return paint(color.GREEN_BOLD, "@")
-        if commit == actual_head:
-            return paint(color.GREEN, "●")
-        return paint(color.CYAN if commit in names else color.DIM, "○")
+        return _marker(commit, paint, names, center, actual_head)
 
+    out = _draw_lanes(above, sort_key, node_text, marker, paint, folded=folded)
+    out.append(Row(paint(color.DIM, LEGEND)))
+    return list(with_details(tuple(out), details)) if details else out
+
+
+def render_radius(history, paint, center, label, center_note=None, *,
+                  radius=3, actual_head=None, waypoints=(), details=None):
+    """Draw the real edges within the radius and mark edges that leave it."""
+    neighborhood = history.neighborhood(center, radius)
+    names = {}
+    destinations = {}
+    nearest = None
+    for waypoint in waypoints:
+        if waypoint.distance is not None and (nearest is None or waypoint.distance < nearest):
+            nearest = waypoint.distance
+        if waypoint.oid in neighborhood:
+            names.setdefault(waypoint.oid, []).extend(waypoint.names)
+        elif waypoint.outside is not None:
+            edge = _Continuation(waypoint.anchor, waypoint.outside)
+            destinations.setdefault(edge, {}).setdefault(waypoint.distance, []).extend(waypoint.names)
+
+    above = {commit: [] for commit in neighborhood}
+    for commit in neighborhood:
+        for parent in history.parents[commit]:
+            if parent in neighborhood:
+                above[commit].append(parent)
+            else:
+                edge = _Continuation(commit, parent)
+                above[commit].append(edge)
+                above[edge] = []
+        for child in history.children[commit]:
+            if child not in neighborhood:
+                above[_Continuation(commit, child)] = [commit]
+
+    def sort_key(node):
+        if isinstance(node, _Continuation):
+            return (-history.when[node.outside], radius + 1, node.outside, node.anchor)
+        return (-history.when[node], neighborhood[node], node, "")
+
+    def node_text(node):
+        if isinstance(node, _Continuation):
+            targets = destinations.get(node, {})
+            signs = []
+            for distance, aliases in sorted(targets.items()):
+                unit = "step" if distance == 1 else "steps"
+                sign = paint(color.CYAN, ", ".join(sorted(aliases)))
+                sign += " " + paint(color.DIM, "(%d %s)" % (distance, unit))
+                if distance == nearest:
+                    sign += "  " + paint(color.GREEN, "[nearest]")
+                signs.append(sign)
+            return ", ".join(signs)
+        parts = _labels(node, paint, names, center, label, actual_head)
+        if len(history.parents[node]) > 1:
+            parts.append(paint(color.DIM, "merge"))
+        if len(history.children[node]) > 1:
+            parts.append(paint(color.DIM, "fork"))
+        text = _commit_text(node, paint, parts)
+        if node in names and neighborhood[node] == nearest:
+            text += "  " + paint(color.GREEN, "[nearest]")
+        return text + "  " + center_note if node == center and center_note else text
+
+    def marker(node):
+        if isinstance(node, _Continuation):
+            return paint(color.DIM, "…")
+        return _marker(node, paint, names, center, actual_head)
+
+    for parent_nodes in above.values():
+        parent_nodes.sort(key=sort_key)
+    out = _draw_lanes(above, sort_key, node_text, marker, paint)
+    return list(with_details(tuple(out), details)) if details else out
+
+
+def _draw_lanes(above, sort_key, node_text, marker, paint, *, folded=None):
     out = []
     lanes = []  # lanes[i] is the commit this lane is heading to, or None if free
+    folded = folded or {}
 
-    def emit(cells, fill=(), width=0, text="", oid=None, kind="text"):
-        """Draw one row, putting a vertical line in each active lane without a supplied glyph."""
+    def prefix(cells, fill=(), width=0):
+        """Put a vertical line in each active lane without a supplied glyph."""
         n = max([i for i, c in enumerate(lanes) if c is not None] + [width - 1, *cells]) + 1
         row = ""
         for i in range(n):
             glyph = cells.get(i) or ("│" if i < len(lanes) and lanes[i] else " ")
             row += paint(color.DIM, glyph) if glyph in LINE_GLYPHS else glyph
             row += paint(color.DIM, "─") if i in fill else " "
-        out.append(Row(("%s %s" % (row, text)).rstrip(), oid, kind))
+        return row + " "
+
+    def emit(cells, fill=(), width=0, text="", oid=None, kind="text"):
+        text = (prefix(cells, fill, width) + text).rstrip()
+        detail_prefix = prefix({}, width=width) if kind == "commit" else ""
+        out.append(Row(text, oid, kind, detail_prefix))
 
     def free_lane(after=-1):
         for i in range(after + 1, len(lanes)):
@@ -200,11 +304,10 @@ def render_map(names, paint, center, label, center_note=None, *,
             emit(cells, fill=range(lane, extra[-1]))
             for j in extra:
                 lanes[j] = None
-        emit({lane: marker(commit)}, width=lane + 1, text=node_text(commit), oid=commit, kind="commit")
-        if details and details[0] == commit:
-            for line in details[1]:
-                emit({}, width=lane + 1, text=line)
-
+        if isinstance(commit, _Continuation):
+            emit({lane: marker(commit)}, width=lane + 1, text=node_text(commit))
+        else:
+            emit({lane: marker(commit)}, width=lane + 1, text=node_text(commit), oid=commit, kind="commit")
         parent_nodes = above[commit]
         lanes[lane] = parent_nodes[0] if parent_nodes else None
         for parent in parent_nodes[1:]:
@@ -233,7 +336,4 @@ def render_map(names, paint, center, label, center_note=None, *,
             if pending[parent] == 0:
                 ready.append(parent)
 
-    out.append(Row(paint(color.DIM, LEGEND)))
-    if details and details[0] not in visible:
-        out.extend(Row(line) for line in details[1])
     return out

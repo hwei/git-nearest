@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="418.4" height="240" viewBox="0 0 418.4 240">
+<style>text{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;font-size:14px;font-variant-ligatures:none;white-space:pre}</style>
+<rect width="100%" height="100%" rx="8" fill="#161b22"/>
+<circle cx="20" cy="18" r="6" fill="#ff5f56"/><circle cx="40" cy="18" r="6" fill="#ffbd2e"/><circle cx="60" cy="18" r="6" fill="#27c93f"/>
+<text x="16" y="58.9" fill="#3fb950">$</text>
+<text x="32.8 41.2 49.6" y="58.9" fill="#c9d1d9" font-weight="bold">git</text>
+<text x="66.4 74.8 83.2 91.6 100 108.4 116.8" y="58.9" fill="#c9d1d9" font-weight="bold">nearest</text>
+<text x="133.6 142" y="58.9" fill="#c9d1d9" font-weight="bold">-b</text>
+<text x="158.8 167.2 175.6 184 192.4 200.8 209.2 217.6 226 234.4 242.8" y="58.9" fill="#c9d1d9" font-weight="bold">origin/main</text>
+<text x="259.6 268 276.4 284.8 293.2 301.6 310 318.4" y="58.9" fill="#c9d1d9" font-weight="bold">--radius</text>
+<text x="335.2" y="58.9" fill="#c9d1d9" font-weight="bold">2</text>
+<text x="16" y="78.9" fill="#3fb950">●</text>
+<text x="41.2 49.6 58 66.4 74.8 83.2 91.6 100" y="78.9" fill="#c9d1d9" fill-opacity="0.5">ae22273d</text>
+<text x="125.2 133.6 142 150.4" y="78.9" fill="#3fb950">HEAD</text>
+<circle cx="20.2" cy="94" r="3.024" fill="none" stroke-width="1.5" stroke="#c9d1d9" stroke-opacity="0.5"/>
+<text x="41.2 49.6 58 66.4 74.8 83.2 91.6 100" y="98.9" fill="#c9d1d9" fill-opacity="0.5">2afcc494</text>
+<text x="16" y="118.9" fill="#3fb950" font-weight="bold">@</text>
+<text x="41.2 49.6 58 66.4 74.8 83.2 91.6 100" y="118.9" fill="#c9d1d9" fill-opacity="0.5">574e9395</text>
+<text x="125.2 133.6 142 150.4 158.8 167.2 175.6 184 192.4 200.8 209.2" y="118.9" fill="#3fb950" font-weight="bold">origin/main</text>
+<circle cx="20.2" cy="134" r="3.024" fill="none" stroke-width="1.5" stroke="#c9d1d9" stroke-opacity="0.5"/>
+<text x="41.2 49.6 58 66.4 74.8 83.2 91.6 100" y="138.9" fill="#c9d1d9" fill-opacity="0.5">9e1f470f</text>
+<circle cx="20.2" cy="154" r="3.024" fill="none" stroke-width="1.5" stroke="#c9d1d9" stroke-opacity="0.5"/>
+<text x="41.2 49.6 58 66.4 74.8 83.2 91.6 100" y="158.9" fill="#c9d1d9" fill-opacity="0.5">9c510059</text>
+<text x="125.2 133.6 142 150.4 158.8" y="158.9" fill="#c9d1d9" fill-opacity="0.5">merge</text>
+<path d="M20.2 174L20.2 164M20.2 174L20.2 184M20.2 174L24.4 174" stroke="#c9d1d9" stroke-opacity="0.5" fill="none" stroke-width="1.3"/>
+<path d="M28.6 174L24.4 174M28.6 174L32.8 174" stroke="#c9d1d9" stroke-opacity="0.5" fill="none" stroke-width="1.3"/>
+<path d="M32.8 174A4.2 4.2 0 0 1 37 178.2V184" stroke="#c9d1d9" stroke-opacity="0.5" fill="none" stroke-width="1.3"/>
+<text x="16" y="198.9" fill="#c9d1d9" fill-opacity="0.5">…</text>
+<path d="M37 194L37 184M37 194L37 204" stroke="#c9d1d9" stroke-opacity="0.5" fill="none" stroke-width="1.3"/>
+<text x="58 66.4 74.8 83.2 91.6 100 108.4 116.8 125.2 133.6 142 150.4 158.8 167.2 175.6 184 192.4 200.8" y="198.9" fill="#39c5cf">origin/release/1.2</text>
+<text x="217.6 226" y="198.9" fill="#c9d1d9" fill-opacity="0.5">(5</text>
+<text x="242.8 251.2 259.6 268 276.4 284.8" y="198.9" fill="#c9d1d9" fill-opacity="0.5">steps)</text>
+<text x="32.8" y="218.9" fill="#c9d1d9" fill-opacity="0.5">…</text>
+<text x="58 66.4 74.8 83.2 91.6 100 108.4 116.8 125.2 133.6 142 150.4 158.8 167.2 175.6 184 192.4 200.8 209.2 217.6" y="218.9" fill="#39c5cf">origin/feature/login</text>
+<text x="234.4 242.8" y="218.9" fill="#c9d1d9" fill-opacity="0.5">(3</text>
+<text x="259.6 268 276.4 284.8 293.2 301.6" y="218.9" fill="#c9d1d9" fill-opacity="0.5">steps)</text>
+<text x="326.8 335.2 343.6 352 360.4 368.8 377.2 385.6 394" y="218.9" fill="#3fb950">[nearest]</text>
+</svg>

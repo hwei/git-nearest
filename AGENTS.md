@@ -1,15 +1,16 @@
 # AGENTS.md
 
-`git nearest` draws a compact Git graph around HEAD or another commit. It ranks branches by fewest
-commits ahead, then fewest behind. `-i` opens the interactive view. Pure Python standard library,
-`requires-python >= 3.8`.
+`git nearest` draws a compact Git graph around HEAD or another commit. `--radius` shows a bounded
+neighborhood of real commits. `-i` lets you walk parent and child edges. Pure Python standard
+library, `requires-python >= 3.8`.
 
 ## Commands
 
 ```console
 uv run pytest            # run the tests
 uv run git-nearest       # run from source inside any git repo
-uv run python scripts/demo.py   # regenerate the README graph example
+uv run git-nearest --radius 3   # show the three-step neighborhood
+uv run python scripts/demo.py   # regenerate the README graph examples
 uv build                 # build sdist + wheel into dist/
 ```
 

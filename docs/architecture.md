@@ -4,41 +4,43 @@
 
 ```
 src/git_nearest/
-  cli.py      parse options into a view state and build a view, using read-only git operations
-  refs.py     select branches and rank distinct tips by ahead/behind from the view center
-  graph.py    build the compact graph, expand selected folds, and format selectable rows
-  tui.py      edit view options with keyboard navigation and restore the terminal on exit
-  status.py   git status --porcelain=v1 -> counts -> "[clean]" / "[2 staged, ...]"
-  gitutil.py  git() subprocess wrapper, GitError
-  color.py    Painter + ANSI codes
-tests/        conftest.py builds throwaway repos per test
+  cli.py         parse options, build the compact view and coordinate radius sessions
+  refs.py        select branch labels and rank compact tips by ahead/behind from the view center
+  graph.py       build the compact graph and render the radius graph with shared lane drawing
+  navigation.py  index local commit edges and search neighborhoods and branch routes
+  view.py        shared options, view state and cached radius sessions
+  tui.py         walk neighboring commits, edit view options, and restore the terminal on exit
+  status.py      git status --porcelain=v1 -> counts -> "[clean]" / "[2 staged, ...]"
+  gitutil.py     git() subprocess wrapper, GitError
+  color.py       Painter + ANSI codes
+tests/           conftest.py builds throwaway repos per test
 scripts/
-  demo.py     builds the synthetic repo behind the README example and renders docs/img/graph.svg
+  demo.py        builds the synthetic repo and renders the graph examples under docs/img/
 ```
 
 The console script `git-nearest` points at `git_nearest.cli:main`. git runs any `git-<name>` on
 `PATH` as `git <name>`.
 
-## Ranking (`refs.py`)
+## Branch selection and compact ranking (`refs.py`)
 
 The center is HEAD or the commit that `-b REV` resolves to. Without a pattern, consider
 remote-tracking branches. An explicit regular expression can select from local and remote-tracking
-branches by full ref name. Skip symbolic refs and the ref that names the center. Sort by the number
-of commits exclusive to the center, then by the number exclusive to the tip. Refs on the same commit
-share one place in the limit and all their matching names appear in the graph.
+branches by full ref name. Skip symbolic refs and the ref that names the center. Refs on the same
+commit share one place in the limit and all their matching names appear in the graph.
 
-Git 2.41 or newer batches counts with `for-each-ref`. With a filter, it reads the selected names from
-stdin. Older Git uses one `rev-list --left-right --count` per distinct selected tip.
+The compact graph sorts by the number of commits exclusive to the center, then by the number exclusive
+to the tip. Git 2.41 or newer batches counts with `for-each-ref`. With a filter, it reads the selected
+names from stdin. Older Git uses one `rev-list --left-right --count` per distinct selected tip.
 
-## View state (`cli.py`, `tui.py`)
+## View state (`cli.py`, `view.py`, `tui.py`)
 
-The command line sets the initial center, filter, tip limit, expanded folds and selected commit details.
-The interactive mode uses the same options to build each new graph. When it exits the interactive
-screen, the command prints the final view once. The cursor and scrolling affect only keyboard
-navigation. The status note comes from `git status --porcelain=v1` and belongs to the checked-out HEAD.
-`--no-status` skips that check.
+The command line sets the initial center, filter, tip limit, radius or expanded folds, and selected
+commit details. Interactive mode sets a default radius and edits the same options. Its branch choice
+is temporary until the user confirms an edge and moves the center. The command prints the last view
+on the regular terminal screen after exiting interactive mode. The status note comes from
+`git status --porcelain=v1` and belongs to the checked-out HEAD. `--no-status` skips that check.
 
-## Graph (`graph.py`)
+## Compact graph (`graph.py`)
 
 The compact graph shows the view center, ref tips and the merge-bases between them. Other commits are
 folded until a view asks to expand them.
@@ -54,8 +56,22 @@ folded until a view asks to expand them.
    row can be older than the one below it. Assign lanes in jj/git-log style, joining and splitting
    with `├─╯` and `├─╮`.
 
+## Radius graph (`navigation.py`, `view.py`, `graph.py`)
+
+Build an adjacency index once with `rev-list --parents` over branch tips, HEAD and the initial center.
+Interactive jumps can add ancestry for an unreferenced commit. The index stores parent and child
+links. Breadth-first distances select the commits within the radius regardless of the branch filter.
+Draw the original parent edges among those commits and add continuations where edges cross the
+boundary.
+
+Rank selected, reachable branch tips by shortest path length from the center. A waypoint for a tip
+beyond the radius is drawn on the boundary along a shortest route to the tip. Interactive mode
+renders the local map before the background waypoint search completes, then waits for the last route
+search before printing. It caches recent maps, routes, and commit details for navigation.
+
 ## Output conventions
 
-The view center is `@`, a distinct checked-out HEAD is `●`, and other nodes are `○`. Branch tips with
-the best ranking carry a `nearest` label. Fold counts appear as dimmed `~  (n)` rows. Color is enabled
-with `--color always` or `auto` on a TTY without `NO_COLOR`.
+The view center is `@`, a distinct checked-out HEAD is `●`, and other nodes are `○`. The best-ranked
+tips carry a `nearest` label. Compact folds use dimmed `~  (n)` rows. The radius graph uses `…` for
+boundary continuations and shows branch distances on those rows. Color is enabled with
+`--color always` or `auto` on a TTY without `NO_COLOR`.

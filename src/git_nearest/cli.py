@@ -1,30 +1,16 @@
 import argparse
 from collections import Counter
-from dataclasses import dataclass, replace
+from dataclasses import replace
 import os
-import re
 import sys
-from typing import Optional, Tuple
 
 from . import __version__, color, graph, refs, status, tui
 from .color import Painter
 from .gitutil import GitError, git
-
-
-@dataclass(frozen=True)
-class Options:
-    limit: int = 5
-    rev: str = "HEAD"
-    pattern: Optional[str] = None
-    expanded: Tuple[str, ...] = ()
-    details: Optional[str] = None
-
-
-@dataclass(frozen=True)
-class View:
-    state: Options
-    center: str
-    rows: Tuple[graph.Row, ...]
+from .view import (
+    Options, RadiusSession, View, branches_message, commit_details, compile_pattern,
+    head_label, one_line, resolve, symbolic,
+)
 
 
 def _parser():
@@ -38,8 +24,10 @@ def _parser():
                         help="center the map on this branch or commit (default: HEAD)")
     parser.add_argument("--match", metavar="REGEX",
                         help="match full local and remote branch ref names; without this, show remote branches")
+    parser.add_argument("--radius", metavar="N", type=int,
+                        help="show commits within N parent/child steps (interactive default: 3)")
     parser.add_argument("--expand", metavar="REV", action="append", default=[],
-                        help="unfold the history below this commit in the map (repeatable)")
+                        help="unfold the history below this commit in the compact map (repeatable)")
     parser.add_argument("--details", metavar="REV", help="show this commit's details")
     parser.add_argument("-i", "--interactive", action="store_true",
                         help="explore the map interactively; leave the final map in the terminal")
@@ -52,49 +40,13 @@ def _parser():
     return parser
 
 
-def _resolve(rev):
-    args = ("rev-parse", "--verify", "--end-of-options", rev + "^{commit}")
-    if rev == "HEAD":
-        return git(*args)
-    oid = git(*args, check=False)
-    if oid:
-        return oid
-    raise GitError("not a valid branch or commit: " + _one_line(rev))
-
-
-def _one_line(text):
-    return "".join(c if c.isprintable() else " " for c in text)
-
-
-def _head_label():
-    branch = git("symbolic-ref", "--short", "-q", "HEAD", check=False)
-    return "HEAD -> " + branch if branch else "HEAD (detached)"
-
-
-def _details(oid):
-    subject, author, date, parents = git(
-        "show", "-s", "--format=%s%x00%an%x00%aI%x00%P", oid, strip=False
-    ).rstrip("\n").split("\0")
-    return [
-        "Commit " + oid,
-        "  " + _one_line(subject),
-        "  Author " + _one_line(author),
-        "  Date " + date,
-        "  Parents " + (parents or "(root)"),
-    ]
-
-
 def _load(state, paint, check_tree):
-    try:
-        pattern = re.compile(state.pattern) if state.pattern is not None else None
-    except re.error as exc:
-        raise GitError("invalid branch regex: " + _one_line(str(exc))) from exc
-
-    center = _resolve(state.rev)
+    pattern = compile_pattern(state.pattern)
+    center = resolve(state.rev)
     actual_head = center if state.rev == "HEAD" else git(
         "rev-parse", "--verify", "--end-of-options", "HEAD^{commit}", check=False
     )
-    skip = git("rev-parse", "--verify", "--symbolic-full-name", "--end-of-options", state.rev, check=False)
+    skip = symbolic(state.rev)
     ranked = refs.rank(state.limit, center, skip, pattern=pattern)
 
     names = {}
@@ -106,14 +58,14 @@ def _load(state, paint, check_tree):
         if (row.ahead, row.behind) == (ranked[0].ahead, ranked[0].behind):
             nearest.add(row.oid)
 
-    expanded = tuple(dict.fromkeys(_resolve(rev) for rev in state.expanded))
-    detail_oid = _resolve(state.details) if state.details is not None else None
+    expanded = tuple(dict.fromkeys(resolve(rev) for rev in state.expanded))
+    detail_oid = resolve(state.details) if state.details is not None else None
     state = replace(state, expanded=expanded, details=detail_oid)
-    details = (detail_oid, _details(detail_oid)) if detail_oid else None
+    details = (detail_oid, commit_details(detail_oid)) if detail_oid else None
     if state.rev == "HEAD":
-        label = _head_label()
+        label = head_label()
     else:
-        label = _one_line(state.rev) + (" [HEAD]" if center == actual_head else "")
+        label = one_line(state.rev) + (" [HEAD]" if center == actual_head else "")
     note = status.describe(status.read(), paint) if state.rev == "HEAD" and check_tree else None
 
     rows = list(graph.render_map(
@@ -121,10 +73,9 @@ def _load(state, paint, check_tree):
         nearest=nearest, expanded=expanded, details=details,
     ))
     if actual_head and actual_head != center and not any(row.oid == actual_head for row in rows):
-        rows.append(graph.Row(paint(color.DIM, _head_label() + " (outside map)"), None, "text"))
+        rows.append(graph.Row(paint(color.DIM, head_label() + " (outside map)"), None, "text"))
     if not ranked:
-        message = ("No branches match the filter." if pattern is not None else
-                   "No remote branches found (try git fetch or --match '^refs/heads/').")
+        message = branches_message(state.pattern)
         rows.append(graph.Row(paint(color.DIM, message), None, "text"))
     return View(state, center, tuple(rows))
 
@@ -140,6 +91,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.limit < 1:
         parser.error("limit must be at least 1")
+    radius = 3 if args.interactive and args.radius is None else args.radius
+    if radius is not None and radius < 0:
+        parser.error("radius must be at least 0")
+    if args.expand and radius is not None:
+        parser.error("--expand applies only to the compact map")
     if args.interactive and not (sys.stdin.isatty() and sys.stdout.isatty()):
         parser.error("-i requires an interactive terminal")
     if os.name == "nt" and sys.stdout.isatty():
@@ -148,15 +104,21 @@ def main(argv=None):
         sys.stdout.reconfigure(encoding="utf-8")
 
     paint = Painter(_use_color(args.color))
-    state = Options(args.limit, args.branch, args.match, tuple(args.expand), args.details)
-
-    def reload_view(options):
-        return _load(options, paint, check_tree=not args.no_status)
+    state = Options(args.limit, args.branch, args.match, tuple(args.expand), args.details, radius)
+    check_tree = not args.no_status
 
     try:
-        view = reload_view(state)
-        if args.interactive:
-            view = tui.run(view, reload_view)
+        if radius is None:
+            view = _load(state, paint, check_tree)
+        else:
+            session = RadiusSession(state, paint, check_tree)
+            try:
+                if args.interactive:
+                    view = tui.run(session.load(state), session.load, session.refresh)
+                    state = view.state
+                view = session.load(state, wait=True)
+            finally:
+                session.close()
     except GitError as exc:
         print("git-nearest: " + str(exc), file=sys.stderr)
         return 1

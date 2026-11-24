@@ -19,6 +19,7 @@ def test_quit_leaves_final_interactive_view_as_cli_output(forked):
 
     head = forked.git("rev-parse", "HEAD")
     parent = forked.git("rev-parse", "HEAD^")
+    side = forked.git("rev-parse", "main~2^2")
     pattern = "^refs/remotes/origin/main$"
     command = [sys.executable, "-m", "git_nearest", "--color", "never"]
     env = {**os.environ, "TERM": "xterm", "PYTHONIOENCODING": "utf-8",
@@ -56,21 +57,31 @@ def test_quit_leaves_final_interactive_view_as_cli_output(forked):
         read_through("Ref regex")
         os.write(master, pattern.encode() + b"\r")
         read_through("Filter " + pattern)
-        os.write(master, b"\x1b[B ")
-        read_through(parent[:8])
+        os.write(master, b"\x1b[B")
+        read_through("Center " + parent[:8])
+        os.write(master, b"[")
+        read_through("Radius 2")
         os.write(master, b"i")
-        read_through("Commit " + head)
+        read_through("Commit " + parent)
         os.write(master, b"g")
         read_through("Jump to ref or commit")
-        os.write(master, b"origin/feat\r")
-        read_through("Center origin/feat")
+        os.write(master, b"main~2\r")
+        read_through("Center main~2")
+        os.write(master, b"\x1b[B")
+        read_through("Parent 1/2")
+        os.write(master, b"\x1b[C")
+        read_through("Parent 2/2  " + side[:8])
+        os.write(master, b"\r")
+        read_through("Center " + side[:8])
         os.write(master, b"\x7f")
-        read_through("Commit " + head)
+        read_through("Center main~2")
+        os.write(master, b"\x7f")
+        read_through("Center " + parent[:8])
 
         os.write(master, b"q")
         read_through("\x1b[?1049l")
         expected = subprocess.check_output(
-            [*command, "--match", pattern, "--expand", head, "--details", head],
+            [*command, "-b", parent, "--radius", "2", "--match", pattern, "--details", parent],
             env=env,
         ).replace(b"\n", b"\r\n")
         read_through(expected.decode("utf-8"))

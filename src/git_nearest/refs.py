@@ -27,6 +27,11 @@ def _candidates(namespaces, skip, pattern):
     }
 
 
+def branch_tips():
+    """Snapshot local and remote-tracking branches without symbolic aliases."""
+    return _candidates((HEADS, REMOTES), None, None)
+
+
 def _row(full_ref, oid, counts):
     # Git reports commits exclusive to the candidate first, then to the starting commit.
     behind, ahead = map(int, counts.split())

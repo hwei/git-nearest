@@ -1,8 +1,9 @@
 import re
+from types import SimpleNamespace
 
 from git_nearest.cli import main
 from git_nearest.color import Painter
-from git_nearest.graph import render_map
+from git_nearest.graph import render_map, render_radius, with_details
 
 
 def graph(capsys, *argv):
@@ -158,3 +159,68 @@ def test_details_and_head_mark_a_commit_inside_the_neighborhood(repo):
     assert rows[1].oid == actual_head
     assert rows[1].text.startswith("● ")
     assert rows[2].text.strip() == "│  Test details"
+
+
+def radius_history(parents, distances):
+    children = {commit: [] for commit in parents}
+    for commit, parent_ids in parents.items():
+        for parent in parent_ids:
+            children[parent].append(commit)
+    return SimpleNamespace(
+        parents=parents,
+        children=children,
+        when={commit: i for i, commit in enumerate(parents)},
+        neighborhood=lambda center, radius: {c: d for c, d in distances.items() if d <= radius},
+    )
+
+
+def waypoint(oid, distance, *names, anchor=None, outside=None):
+    return SimpleNamespace(oid=oid, names=names, distance=distance, anchor=anchor, outside=outside)
+
+
+def test_radius_keeps_the_merge_and_places_waypoints_on_the_cut_edge():
+    history = radius_history(
+        {"a": [], "b": ["a"], "c": ["b"], "d": ["b"], "e": ["c", "d"], "f": ["e"]},
+        {"e": 0, "c": 1, "d": 1, "f": 1, "b": 2, "a": 3},
+    )
+    waypoints = [
+        waypoint("a", 3, "origin/main", anchor="c", outside="b"),
+        waypoint("f", 1, "origin/next"),
+    ]
+    rows = render_radius(history, Painter(False), "e", "view center", radius=1,
+                         actual_head="d", waypoints=waypoints)
+    commits = [row for row in rows if row.kind == "commit"]
+    assert {row.oid for row in commits} == {"c", "d", "e", "f"}
+    assert "merge" in next(row.text for row in commits if row.oid == "e")
+    assert "●" in next(row.text for row in commits if row.oid == "d")
+    assert "origin/next  [nearest]" in next(row.text for row in commits if row.oid == "f")
+    assert any("├─╮" in row.text for row in rows)
+    assert sum("…" in row.text for row in rows) == 2
+    sign = next(row for row in rows if "origin/main (3 steps)" in row.text)
+    assert "…" in sign.text
+    assert sign.kind == "text" and sign.oid is None
+
+
+def test_zero_radius_retains_boundary_layout_and_groups_offscreen_aliases():
+    history = radius_history(
+        {"a": [], "b": ["a"], "c": ["b"], "d": ["c"]},
+        {"b": 0, "a": 1, "c": 1, "d": 2},
+    )
+    paint = Painter(False)
+    initial = render_radius(history, paint, "b", "HEAD", radius=0)
+    waypoints = [
+        waypoint("a", 1, "upstream/main", "origin/main", anchor="b", outside="a"),
+        waypoint("d", 2, "origin/future", anchor="b", outside="c"),
+    ]
+    updated = render_radius(history, paint, "b", "HEAD", radius=0, waypoints=waypoints,
+                            details=("a", ["Outside details"]))
+    assert [(row.text[0], row.kind, row.oid) for row in updated[:-1]] == [
+        (row.text[0], row.kind, row.oid) for row in initial
+    ] == [("…", "text", None), ("@", "commit", "b"), ("…", "text", None)]
+    assert updated[0].text.endswith("origin/future (2 steps)")
+    assert updated[2].text.endswith("origin/main, upstream/main (1 step)  [nearest]")
+    assert updated[3].text == "Outside details"
+
+    with_center_details = with_details(tuple(initial), ("b", ["Center details"]))
+    assert with_center_details[2].text == "│  Center details"
+    assert with_center_details[:2] + with_center_details[3:] == tuple(initial)

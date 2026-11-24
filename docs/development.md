@@ -13,13 +13,13 @@ dev dependency.
 
 CI (`.github/workflows/test.yml`) runs `uv run pytest -q` on ubuntu / windows / macos × Python 3.8 / 3.13.
 
-## README example
+## README examples
 
 Run `uv run python scripts/demo.py` after changing output. It rewrites `docs/img/graph.svg` and
-prints the plain text for the `<details>` block in `README.md`.
+`docs/img/radius.svg` and prints the plain text for the `<details>` blocks in `README.md`.
 The output is deterministic; if it changes without an output change, something is off. To check the
-SVG, open it in a browser through an `<img>` tag, as GitHub does, so only system fonts apply.
-The README points at the image on `main`, so the updated SVG appears after a push to `main`.
+SVGs, open them in a browser through an `<img>` tag, as GitHub does, so only system fonts apply.
+The README points at the images on `main`.
 
 ## Releasing
 

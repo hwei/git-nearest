@@ -2,7 +2,7 @@
 
     uv run python scripts/demo.py
 
-Prints the plain text and writes the colored version to docs/img/graph.svg.
+Prints the plain text and writes the colored versions to docs/img/graph.svg and docs/img/radius.svg.
 Commit dates are fixed, so hashes (and the output) are the same on every run.
 """
 import os
@@ -179,15 +179,23 @@ def svg(command, output):
 
 
 def main():
+    commands = (
+        ("graph", ()),
+        ("radius", ("-b", "origin/main", "--radius", "2")),
+    )
     with tempfile.TemporaryDirectory() as tmp:
         build(tmp)
-        graph = run(tmp)
+        examples = [
+            (name, " ".join(("git nearest", *args)), run(tmp, *args))
+            for name, args in commands
+        ]
     img = os.path.join(ROOT, "docs", "img")
     os.makedirs(img, exist_ok=True)
-    with open(os.path.join(img, "graph.svg"), "w", encoding="utf-8", newline="\n") as f:
-        f.write(svg("git nearest", graph))
     sys.stdout.reconfigure(encoding="utf-8")
-    print("$ git nearest\n" + strip(graph))
+    for name, command, output in examples:
+        with open(os.path.join(img, name + ".svg"), "w", encoding="utf-8", newline="\n") as f:
+            f.write(svg(command, output))
+    print("\n\n".join("$ " + command + "\n" + strip(output) for _, command, output in examples))
 
 
 if __name__ == "__main__":
