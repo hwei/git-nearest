@@ -1,44 +1,17 @@
 # git-nearest
 
-Which remote branch is my current branch closest to?
+A compact Git graph of the branches closest to HEAD or another commit. Run `git nearest` for a
+quick view of the neighborhood, or `git nearest -i` to explore it in your terminal.
 
-<img src="https://raw.githubusercontent.com/hwei/git-nearest/main/docs/img/table.svg" alt="git nearest output: a table of remote branches">
+<img src="https://raw.githubusercontent.com/hwei/git-nearest/main/docs/img/graph.svg" alt="git nearest showing the graph of a local branch and nearby remote-tracking branches">
 
 <details><summary>as text</summary>
 
 ```console
 $ git nearest
-@  HEAD -> fix-typo  [1 staged, 1 untracked]
-↑2 ↓0  origin/main           574e9395
-↑8 ↓0  origin/feature/login  51eef8f5
-↑9 ↓1  origin/release/1.2    fc1afa3b
-```
-</details>
-
-The first line shows where HEAD is and the state of the working tree: `[clean]`, or counts such as
-`[2 staged, 3 modified, 1 untracked]` (conflicted files turn it red). That is the thing to check
-before moving the branch somewhere else.
-
-`↑` is how many commits HEAD has that the remote branch doesn't, `↓` is how many the remote branch
-has that HEAD doesn't, and the last column is the merge-base. The closest branch (fewest `↑`, then
-fewest `↓`) comes first. Remote branches with the same tip all show up, so you can see ties
-instead of having one picked for you.
-
-## Graph
-
-`git nearest -g` draws how HEAD and those branches relate, in the style of
-[`jj log`](https://docs.jj-vcs.dev/): newest on top (by commit date, parents never above their children), and runs of ordinary commits folded into a
-`~  (n)` row on the vertical line.
-
-<img src="https://raw.githubusercontent.com/hwei/git-nearest/main/docs/img/graph.svg" alt="git nearest -g output: a graph of HEAD and remote branches">
-
-<details><summary>as text</summary>
-
-```console
-$ git nearest -g
 @  ae22273d  HEAD -> fix-typo  [1 staged, 1 untracked]
 ~  (1)
-○  574e9395  origin/main
+○  574e9395  origin/main  [nearest]
 ├─╮
 ~ │  (3)
 │ │ ○  2cf4c0c2  origin/release/1.2
@@ -53,11 +26,11 @@ $ git nearest -g
 ```
 </details>
 
-Only HEAD, the branch tips and the merge-bases between them are drawn. `(3)` means three commits sit
-between the nodes above and below it.
+`@` marks the view center. The graph highlights the nearest branch tips and keeps merge-bases
+visible. A row such as `~  (3)` folds three commits that you can expand as needed. The working tree
+note next to HEAD shows whether there are staged, modified, untracked or conflicted files.
 
-Both examples (images and text) are real output from a synthetic repository built by
-[`scripts/demo.py`](https://github.com/hwei/git-nearest/blob/main/scripts/demo.py).
+The example is generated from a synthetic repository. [Demo script](https://github.com/hwei/git-nearest/blob/main/scripts/demo.py)
 
 ## Install
 
@@ -73,40 +46,68 @@ The package installs an executable called `git-nearest`; git runs any `git-<name
 ## Usage
 
 ```
-git nearest [N] [-b REV] [-g] [--no-status] [--color {auto,always,never}] [--no-color] [--version]
+git nearest [N] [-b REV] [--match REGEX] [--expand REV]... [--details REV] [-i]
+            [--no-status] [--color {auto,always,never}] [--no-color] [--version]
 ```
 
 | | |
 |---|---|
-| `N` | how many branches to show (default 5) |
-| `-b`, `--branch REV` | measure from this branch or commit instead of HEAD; skips the working tree check, which only describes HEAD |
-| `-g`, `--graph` | draw the graph instead of the table |
+| `N` | number of distinct branch tip commits to show (default 5) |
+| `-b`, `--branch REV` | center the view on this branch or commit (default HEAD) |
+| `--match REGEX` | select branches by a regular expression on their full ref names |
+| `--expand REV` | show the commits in the fold below REV (repeatable) |
+| `--details REV` | show the commit subject, author, time, SHA, and parents for REV |
+| `-i`, `--interactive` | explore the graph with the keyboard |
 | `--no-status` | skip the working tree check (it runs `git status`, which can be slow on huge repositories) |
 | `--color` | `auto` (default) colors only on a terminal and respects `NO_COLOR` |
 | `--version` | print the version and exit |
 
+By default, the candidates are all remote-tracking branches. With `--match`, the pattern is
+searched against the full ref names of local and remote-tracking branches. The filter applies before
+selecting the nearest tips. Branches that point to the same commit share one place in the result.
+
+```sh
+git nearest --match '^refs/remotes/origin/(main$|release/)'
+git nearest --match '^refs/heads/'
+git nearest -b origin/main --expand origin/main --details origin/main
+```
+
+## Interactive mode
+
+Run `git nearest -i` in a terminal. The initial view comes from the same options as command mode.
+Use the keys below to change that view. Quitting prints the final graph into your terminal scrollback.
+
+| Key | Action |
+|---|---|
+| `↑` / `↓` or `k` / `j` | Select a commit or fold |
+| `Enter` | Center the view on the selected commit |
+| `g` | Jump to a branch or commit |
+| `f` | Edit the branch regex filter |
+| `n` | Edit the number of distinct tips to show |
+| `Backspace` | Return to the previous view |
+| `Home` | Return to the checked-out HEAD |
+| `Space` | Expand or collapse the selected fold |
+| `i` | Toggle details for the selected commit |
+| `q` | Quit and leave the final graph in the terminal |
+
+Centering the view is a read-only operation. Press `Esc` to cancel a prompt or `Ctrl+U` to clear its
+input. Use the command-line options to render the same view directly from the shell.
+
 ## How it works
 
-git has no notion of a branch's "parent", only of common ancestors, so this is a heuristic, not a
-lookup. For every ref under `refs/remotes` it asks git for the ahead/behind counts against HEAD in a
-single `for-each-ref --format='%(ahead-behind:HEAD)'` call (git 2.41+; older versions fall back to one
-`rev-list` per ref, which is slower on repositories with many branches).
+Git records ancestry through commits. The closest tip is the one that leaves the fewest commits
+exclusive to the view center, then the fewest commits exclusive to the tip. A branch that has absorbed
+the center's history through a merge can rank above the branch it originally split from. The graph
+shows newest commits first while keeping children above their parents. Fold counts show how many
+commits are hidden in that section of the graph.
 
-The graph walks the history above the common base once, marks which tips can reach each commit, and
-keeps only the commits where those sets change. Those are the merge-bases.
-
-## Limitations
-
-- "Nearest" is by commit count. If you branched from `main` last week and `release/1.0` happens to be
-  two commits behind `main`, `release/1.0` is nearer. Look at the graph when it matters.
-- Branches that are not in `refs/remotes` are ignored. Run `git fetch` first.
-- Folded counts on a node with two parents are the commits unique to that node, shown once.
+Remote-tracking branches come from your local repository. Run `git fetch` to update them.
+If no branches match, the graph still shows the view center.
 
 ## Similar tools
 
 - Scripts based on `git show-branch` or on grepping `git log --decorate` for `origin/` (the usual
-  Stack Overflow answers) look only at the first decorated ancestor, so they miss ties and give no
-  distance.
+  Stack Overflow answers) look only at the first decorated ancestor, so they miss ties.
 - [Git Town](https://www.git-town.com/) records a parent for each branch when it creates the branch.
   That is exact but only works for branches it knows about; `git-nearest` infers from history and needs
   no setup.

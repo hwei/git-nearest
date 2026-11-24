@@ -1,5 +1,7 @@
 import re
 
+import pytest
+
 from git_nearest import status
 from git_nearest.color import Painter
 from git_nearest.cli import main
@@ -67,23 +69,26 @@ def test_conflict(repo):
     assert status.read().conflicted == 1
 
 
-def test_header_line_in_table(forked, capsys):
+def test_graph_shows_working_tree_status(forked, capsys):
     tracked(forked, "a.txt")
     write(forked, "a.txt", "changed")
     write(forked, "new.txt")
-    assert head_line(capsys) == "@  HEAD -> work  [1 modified, 1 untracked]"
+    assert head_line(capsys).endswith("HEAD -> work  [1 modified, 1 untracked]")
 
 
 def test_graph_marks_head_node(forked, capsys):
     write(forked, "new.txt")
-    main(["--color", "never", "-g"])
+    main(["--color", "never"])
     first = capsys.readouterr().out.splitlines()[0]
     assert re.sub(r"\b[0-9a-f]{8}\b", "H", first) == "@  H  HEAD -> work  [1 untracked]"
 
 
-def test_no_status_skips_it(forked, capsys):
-    main(["--color", "never", "--no-status"])
-    assert capsys.readouterr().out.splitlines()[0].startswith("↑")
+def test_no_status_skips_it(forked, capsys, monkeypatch):
+    def unexpected_status():
+        pytest.fail("--no-status ran the working tree check")
+
+    monkeypatch.setattr(status, "read", unexpected_status)
+    assert head_line(capsys, "--no-status").endswith("HEAD -> work")
 
 
 def test_describe_colors():

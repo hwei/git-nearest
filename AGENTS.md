@@ -1,14 +1,15 @@
 # AGENTS.md
 
-`git nearest` lists the remote branches closest to HEAD (fewest commits ahead, then fewest behind),
-as a table or a jj-log-style graph. Pure Python standard library, `requires-python >= 3.8`.
+`git nearest` draws a compact Git graph around HEAD or another commit. It ranks branches by fewest
+commits ahead, then fewest behind. `-i` opens the interactive view. Pure Python standard library,
+`requires-python >= 3.8`.
 
 ## Commands
 
 ```console
 uv run pytest            # run the tests
-uv run git-nearest -g    # run from source inside any git repo
-uv run python scripts/demo.py   # regenerate the README examples
+uv run git-nearest       # run from source inside any git repo
+uv run python scripts/demo.py   # regenerate the README graph example
 uv build                 # build sdist + wheel into dist/
 ```
 

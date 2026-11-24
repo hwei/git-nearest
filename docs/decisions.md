@@ -7,7 +7,7 @@ Settled. Do not reopen without the user asking. Add new entries at the bottom: w
 - **Pure standard library, Python >= 3.8.** Zero install friction for a small git helper.
 - **MIT license.** Author `hwei <814065+hwei@users.noreply.github.com>` in `pyproject.toml`, `LICENSE`
   and commits. No other email anywhere in the repo.
-- **Output glyphs:** HEAD is `@`, fold counts are `(n)`, folded rows use `~`. Matches `jj log` closely
+- **Output glyphs.** The view center is `@`, fold counts are `(n)`, and folded rows use `~`. Matches `jj log` closely
   enough to be familiar.
 - **Ranking is a heuristic** (fewest ahead, then fewest behind). git has no notion of a parent branch;
   the README says so rather than pretending otherwise.
@@ -25,11 +25,19 @@ Settled. Do not reopen without the user asking. Add new entries at the bottom: w
 - **Fold counts `(n)` are dim, not colored.** They are secondary information; yellow competed with the
   branch names. Yellow stays for the working tree note.
 - **`-b/--branch REV` picks the base to measure from** (default HEAD). Any branch or commit works. The
-  working tree status is skipped for a non-HEAD base, because it describes HEAD, and the line above the
-  table shows REV as typed. If REV is itself a remote ref it is left out of the list.
+  working tree status describes HEAD. The graph labels the center with the selected revision and
+  excludes the selected branch itself as a candidate.
 - **Graph rows are ordered newest committer date first, subject to children-before-parents.** Was
   alphabetical by ref with HEAD's line leftmost; that looked arbitrary against the timeline. Cost: HEAD's
   line is no longer guaranteed leftmost or contiguous, and clock skew can break strict time order.
 - **Actions are pinned and updated by Dependabot** (`.github/dependabot.yml`, monthly, github-actions only).
   `astral-sh/setup-uv` has no floating major tag, so it is pinned to an exact version. There is no pip
   ecosystem entry: the package has no runtime dependencies.
+- **The graph is the default output.** Its fold counts and nearest marker are enough to scan branch
+  relationships at a glance. Ahead and behind counts drive ranking internally.
+- **Regex filters match full branch refs before selecting the nearest distinct tips.** Full ref names
+  distinguish local branches from remote-tracking branches. Branch names that point to the same tip
+  share one slot to keep aliases from crowding out other commits.
+- **Interactive mode edits the same view options as command mode.** Moving the view center is a read-only
+  operation. The final view goes to regular terminal output so it stays beside the shell command in
+  scrollback.

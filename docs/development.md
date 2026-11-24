@@ -13,20 +13,21 @@ dev dependency.
 
 CI (`.github/workflows/test.yml`) runs `uv run pytest -q` on ubuntu / windows / macos × Python 3.8 / 3.13.
 
-## README examples
+## README example
 
-After changing output, run `uv run python scripts/demo.py`: it rewrites `docs/img/table.svg` and
-`docs/img/graph.svg` and prints the plain text, which goes into the `<details>` blocks in `README.md`.
+Run `uv run python scripts/demo.py` after changing output. It rewrites `docs/img/graph.svg` and
+prints the plain text for the `<details>` block in `README.md`.
 The output is deterministic; if it changes without an output change, something is off. To check the
-SVGs, open them in a browser through an `<img>` tag (as GitHub does, so only system fonts apply).
-The README points at the images on `main`, so they show up there only after a push.
+SVG, open it in a browser through an `<img>` tag, as GitHub does, so only system fonts apply.
+The README points at the image on `main`, so the updated SVG appears after a push to `main`.
 
 ## Releasing
 
 1. Bump the version in both `pyproject.toml` and `src/git_nearest/__init__.py`.
 2. `uv build` then `uvx twine check dist/*`; inspect `tar tzf dist/*.tar.gz` for stray files.
-3. Commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`. `publish.yml` checks the tag against both
-   version strings, runs the tests, builds and uploads via Trusted Publishing.
+3. Commit and push the release commit to `main`, then tag that same commit and push `vX.Y.Z`.
+   `publish.yml` checks both version strings against the tag, runs the tests, builds and publishes via
+   Trusted Publishing.
 
 One-time PyPI setup (already needed before the first release): on pypi.org → Account settings →
 Publishing → "Add a new pending publisher": project `git-nearest`, owner `hwei`, repository
@@ -50,7 +51,7 @@ Use it for every test that needs history; do not depend on the developer's git c
   `status.read()` passes `strip=False`. Do the same for any whitespace-significant output.
 - **`git status` is the slow part** on large repositories (a few hundred ms), hence `--no-status`.
 - **Windows console:** the legacy console needs `os.system("")` to enable ANSI. When stdout is not a
-  TTY it is reconfigured to UTF-8. On a TTY, Python writes through the console API, so `↑↓○│├╯`
+  TTY it is reconfigured to UTF-8. On a TTY, Python writes through the console API, so `○│├╯`
   render regardless of code page.
 - **`NO_COLOR` may be set in agent sandboxes.** Use `--color always` to see escapes.
 - **The sdist is an allowlist** (`[tool.hatch.build.targets.sdist]` in `pyproject.toml`): hatch reads

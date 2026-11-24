@@ -1,110 +1,183 @@
-"""`jj log`-style graph (newest on top) of HEAD and the given remote refs.
+"""Draw the selected branch tips and their history around an observation point."""
+from collections import namedtuple
 
-Only the commits that matter are drawn: HEAD, the ref tips and the merge-bases between them.
-Everything in between is folded into a "~  (n)" row on the vertical line.
-"""
 from . import color
 from .gitutil import git
 
-LINE_GLYPHS = set("│├┴┼╯╮┤─~")  # │ ├ ┴ ┼ ╯ ╮ ┤ ─ ~
+LINE_GLYPHS = set("│├┴┼╯╮┤─~")
 LEGEND = "~ (n) = n commits folded between"
+Row = namedtuple("Row", "text oid kind", defaults=(None, "text"))
 
 
-def render(refs, paint, head, label, head_note=None):
-    """head: the commit everything is measured from; label: how to name it (e.g. "HEAD -> main")."""
-    names = {}  # commit -> remote refs pointing at it
-    shas = git("rev-parse", *["refs/remotes/" + r for r in refs]).split()
-    for ref, sha in zip(refs, shas):
-        names.setdefault(sha, []).append(ref)
-    tips = sorted(set(names) | {head})
-    tip_bit = {c: 1 << i for i, c in enumerate(tips)}
+def _history(tips):
+    """Load commits and edges down to the common base, in children-first order."""
+    if len(tips) == 1:
+        tip = tips[0]
+        return {tip: []}, {tip: 0}
 
-    # Load the history above the common base: children come before parents in `order`.
     base = git("merge-base", "--octopus", *tips, check=False)
-    rev = ["rev-list", "--topo-order", "--parents", *tips] + (["^" + base] if base else [])
+    rev = ["rev-list", "--topo-order", "--parents", "--timestamp", *tips]
+    if base:
+        rev.append("^" + base)
     parents = {}
-    order = []
+    when = {}
     for line in git(*rev).splitlines():
-        commit, *ps = line.split()
-        parents[commit] = ps
-        order.append(commit)
+        timestamp, commit, *parent_ids = line.split()
+        parents[commit] = parent_ids
+        when[commit] = int(timestamp)
     if base:
         parents[base] = []
-        order.append(base)
-    for commit in order:
-        parents[commit] = [p for p in parents[commit] if p in parents]
+        when[base] = int(git("show", "-s", "--format=%ct", base))
+    for commit, parent_ids in parents.items():
+        parents[commit] = [parent for parent in parent_ids if parent in parents]
+    return parents, when
 
-    # mask[c] = which tips can reach c. Commits sharing a mask form one region; the newest commit
-    # of each region (no child with the same mask) is where branches split: a merge-base.
-    mask = {c: tip_bit.get(c, 0) for c in order}
-    for c in order:
-        for p in parents[c]:
-            mask[p] |= mask[c]
-    has_twin_child = {p for c in order for p in parents[c] if mask[p] == mask[c]}
-    nodes = [c for c in order if c in tip_bit or c not in has_twin_child]
-    node_bit = {c: 1 << i for i, c in enumerate(nodes)}
 
-    # allanc[c] = bitmask of every node below c; the nearest are those no other ancestor node covers.
-    allanc = {}
-    for c in reversed(order):
-        a = 0
-        for p in parents[c]:
-            a |= allanc[p] | node_bit.get(p, 0)
-        allanc[c] = a
+def _merge_bases(tips, parents):
+    tip_bit = {commit: 1 << index for index, commit in enumerate(tips)}
+    mask = {commit: tip_bit.get(commit, 0) for commit in parents}
+    for commit in parents:
+        for parent in parents[commit]:
+            mask[parent] |= mask[commit]
+    # A merge-base is the first commit of a region reachable from the same tips.
+    has_twin_child = {
+        parent for commit in parents for parent in parents[commit] if mask[parent] == mask[commit]
+    }
+    return set(parents) - has_twin_child
 
-    def on_head_line(c):
-        return c == head or bool(allanc[head] & node_bit[c]) or bool(allanc[c] & node_bit[head])
 
-    # Newest first among the nodes that are ready to draw; children still always come before parents.
-    when = {}
-    for line in git("show", "-s", "--format=%H %ct", *nodes).splitlines():
-        sha, ts = line.split()
-        when[sha] = int(ts)
+def _visible_parents(parents, visible, unfolded=()):
+    """Find each commit's nearest visible ancestors, projecting through hidden commits."""
+    closest = {}
+    for commit in reversed(parents):
+        candidates = set()
+        for parent in parents[commit]:
+            if parent in visible:
+                candidates.add(parent)
+            else:
+                candidates.update(closest[parent])
+        closest[commit] = candidates
 
-    def sort_key(c):
-        return (-when[c], not on_head_line(c), sorted(names.get(c, [c]))[0])
+    above = {commit: closest[commit] for commit in parents if commit in visible}
+    # Keep direct merge edges in an unfolded region. Else a projected edge is
+    # redundant when its target is reachable through one of the other targets.
+    joins = {
+        commit: candidates for commit, candidates in above.items()
+        if len(candidates) > 1 and (commit not in unfolded or candidates != set(parents[commit]))
+    }
+    if joins:
+        targets = set().union(*joins.values())
+        target_bit = {target: 1 << index for index, target in enumerate(targets)}
+        ancestors = {}
+        for commit in reversed(parents):
+            inherited = 0
+            for parent in parents[commit]:
+                inherited |= ancestors[parent] | target_bit.get(parent, 0)
+            ancestors[commit] = inherited
+        for commit, candidates in joins.items():
+            covered = 0
+            for candidate in candidates:
+                covered |= ancestors[candidate]
+            above[commit] = {candidate for candidate in candidates if not covered & target_bit[candidate]}
+    return above
 
-    above = {}   # node -> nearest ancestor nodes, head line first
-    folded = {}  # node -> commits between it and those ancestors
-    for c in nodes:
-        a = allanc[c]
-        covered = 0
-        for n in nodes:
-            if a & node_bit[n]:
-                covered |= allanc[n]
-        above[c] = sorted((n for n in nodes if a & ~covered & node_bit[n]), key=sort_key)
-        if above[c]:
-            own = int(git("rev-list", "--count", c, *["^" + p for p in above[c]]) or 1)
-            folded[c] = own - 1
 
-    def node_text(c):
+def _center_line(parents, center):
+    older = {center}
+    for commit, parent_ids in parents.items():
+        if commit in older:
+            older.update(parent_ids)
+    newer = {center}
+    for commit in reversed(parents):
+        if any(parent in newer for parent in parents[commit]):
+            newer.add(commit)
+    return older | newer
+
+
+def _region_args(anchor, boundary):
+    return [anchor, *("^" + oid for oid in sorted(boundary))]
+
+
+def render_map(names, paint, center, label, center_note=None, *,
+               actual_head=None, nearest=(), expanded=(), details=None):
+    """Return commit, fold and text rows for one minimap view.
+
+    The oid on a fold row identifies the visible commit directly above that region.
+    """
+    tips = sorted(set(names) | {center})
+    nearest = set(nearest)
+    parents, when = _history(tips)
+    merge_bases = _merge_bases(tips, parents) - set(tips)
+    landmarks = merge_bases | set(tips)
+    if actual_head in parents:
+        landmarks.add(actual_head)
+    expanded = set(expanded).intersection(parents)
+    landmarks.update(expanded)
+
+    visible = set(landmarks)
+    unfolded = set(expanded)
+    if expanded:
+        boundaries = _visible_parents(parents, landmarks)
+        for anchor in sorted(expanded):
+            boundary = boundaries[anchor]
+            if boundary and boundary != set(parents[anchor]):
+                region = git("rev-list", *_region_args(anchor, boundary)).splitlines()
+                unfolded.update(oid for oid in region if oid in parents)
+        visible.update(unfolded)
+    if details and details[0] in parents:
+        visible.add(details[0])
+
+    closest = _visible_parents(parents, visible, unfolded)
+    center_line = _center_line(parents, center)
+
+    def sort_key(commit):
+        return (-when[commit], commit not in center_line, min(names.get(commit, [commit])), commit)
+
+    above = {commit: sorted(boundary, key=sort_key) for commit, boundary in closest.items()}
+    folded = {}
+    for commit, boundary in closest.items():
+        if boundary and boundary != set(parents[commit]):
+            folded[commit] = int(git("rev-list", "--count", *_region_args(commit, boundary))) - 1
+
+    def node_text(commit):
         parts = []
-        if c == head:
+        if commit == center:
             parts.append(paint(color.GREEN_BOLD, label))
-        parts += [paint(color.CYAN, n) for n in sorted(names.get(c, []))]
-        if not parts:
+        elif commit == actual_head:
+            parts.append(paint(color.GREEN, "HEAD"))
+        parts += [paint(color.CYAN, name) for name in sorted(names.get(commit, []))]
+        if not parts and commit in merge_bases:
             parts.append(paint(color.DIM, "merge-base"))
-        text = "%s  %s" % (paint(color.DIM, c[:8]), ", ".join(parts))
-        return text + "  " + head_note if c == head and head_note else text
+        if commit in unfolded and len(parents[commit]) > 1:
+            parts.append(paint(color.DIM, "merge"))
+        text = paint(color.DIM, commit[:8])
+        if parts:
+            text += "  " + ", ".join(parts)
+        if commit in nearest:
+            text += "  " + paint(color.GREEN, "[nearest]")
+        if commit == center and center_note:
+            text += "  " + center_note
+        return text
 
-    def marker(c):
-        if c == head:
+    def marker(commit):
+        if commit == center:
             return paint(color.GREEN_BOLD, "@")
-        return paint(color.CYAN if c in names else color.DIM, "○")  # ○
+        if commit == actual_head:
+            return paint(color.GREEN, "●")
+        return paint(color.CYAN if commit in names else color.DIM, "○")
 
     out = []
-    lanes = []  # lanes[i] = the node lane i is heading to (None = free)
+    lanes = []  # lanes[i] is the commit this lane is heading to, or None if free
 
-    def emit(cells, fill=(), width=0, text=""):
-        """One row. cells: lane -> glyph (default: a vertical line on an active lane);
-        fill: lanes joined to the next one by a horizontal line."""
+    def emit(cells, fill=(), width=0, text="", oid=None, kind="text"):
+        """Draw one row, putting a vertical line in each active lane without a supplied glyph."""
         n = max([i for i, c in enumerate(lanes) if c is not None] + [width - 1, *cells]) + 1
         row = ""
         for i in range(n):
             glyph = cells.get(i) or ("│" if i < len(lanes) and lanes[i] else " ")
             row += paint(color.DIM, glyph) if glyph in LINE_GLYPHS else glyph
             row += paint(color.DIM, "─") if i in fill else " "
-        out.append(("%s %s" % (row, text)).rstrip())
+        out.append(Row(("%s %s" % (row, text)).rstrip(), oid, kind))
 
     def free_lane(after=-1):
         for i in range(after + 1, len(lanes)):
@@ -113,48 +186,54 @@ def render(refs, paint, head, label, head_note=None):
         lanes.append(None)
         return len(lanes) - 1
 
-    def draw(c):
-        waiting = [i for i, n in enumerate(lanes) if n == c]
+    def draw(commit):
+        waiting = [i for i, node in enumerate(lanes) if node == commit]
         if not waiting:
-            k = free_lane()
-            lanes[k] = c
-            waiting = [k]
-        k, extra = waiting[0], waiting[1:]
+            lane = free_lane()
+            lanes[lane] = commit
+            waiting = [lane]
+        lane, extra = waiting[0], waiting[1:]
         if extra:  # lanes of other children converge onto this node
-            cells = {k: "├", **{j: "┴" for j in extra}, extra[-1]: "╯"}
-            for i in range(k + 1, extra[-1]):
+            cells = {lane: "├", **{j: "┴" for j in extra}, extra[-1]: "╯"}
+            for i in range(lane + 1, extra[-1]):
                 cells.setdefault(i, "┼" if lanes[i] else "─")
-            emit(cells, fill=range(k, extra[-1]))
+            emit(cells, fill=range(lane, extra[-1]))
             for j in extra:
                 lanes[j] = None
-        emit({k: marker(c)}, width=k + 1, text=node_text(c))
+        emit({lane: marker(commit)}, width=lane + 1, text=node_text(commit), oid=commit, kind="commit")
+        if details and details[0] == commit:
+            for line in details[1]:
+                emit({}, width=lane + 1, text=line)
 
-        ps = above[c]
-        lanes[k] = ps[0] if ps else None
-        for p in ps[1:]:  # merge: a second parent gets its own lane (or joins the one already heading there)
-            joined = p in lanes
-            j = lanes.index(p) if joined else free_lane(k)
-            lanes[j] = p
-            lo, hi = min(k, j), max(k, j)
+        parent_nodes = above[commit]
+        lanes[lane] = parent_nodes[0] if parent_nodes else None
+        for parent in parent_nodes[1:]:
+            joined = parent in lanes
+            j = lanes.index(parent) if joined else free_lane(lane)
+            lanes[j] = parent
+            lo, hi = min(lane, j), max(lane, j)
             cells = {lo: "├", hi: "┤" if joined else "╮"}
             for i in range(lo + 1, hi):
                 cells[i] = "┼" if lanes[i] else "─"
             emit(cells, fill=range(lo, hi))
-        if folded.get(c):
-            emit({k: "~"}, text=paint(color.DIM, "(%d)" % folded[c]))
+        if folded.get(commit):
+            emit({lane: "~"}, text=paint(color.DIM, "(%d)" % folded[commit]), oid=commit, kind="fold")
 
-    pending = {c: 0 for c in nodes}
-    for c in nodes:
-        for a in above[c]:
-            pending[a] += 1
-    ready = [c for c in nodes if pending[c] == 0]
+    pending = dict.fromkeys(above, 0)
+    for parent_nodes in above.values():
+        for parent in parent_nodes:
+            pending[parent] += 1
+    ready = [commit for commit, count in pending.items() if count == 0]
     while ready:
         ready.sort(key=sort_key)
-        c = ready.pop(0)
-        draw(c)
-        for a in above[c]:
-            pending[a] -= 1
-            if pending[a] == 0:
-                ready.append(a)
-    out.append(paint(color.DIM, LEGEND))
+        commit = ready.pop(0)
+        draw(commit)
+        for parent in above[commit]:
+            pending[parent] -= 1
+            if pending[parent] == 0:
+                ready.append(parent)
+
+    out.append(Row(paint(color.DIM, LEGEND)))
+    if details and details[0] not in visible:
+        out.extend(Row(line) for line in details[1])
     return out

@@ -1,8 +1,8 @@
-"""Build a synthetic demo repository and print git-nearest's output, for the README examples.
+"""Build a synthetic demo repository and print git-nearest's output for the README.
 
     uv run python scripts/demo.py
 
-Prints the plain text and writes the colored version to docs/img/table.svg and docs/img/graph.svg.
+Prints the plain text and writes the colored version to docs/img/graph.svg.
 Commit dates are fixed, so hashes (and the output) are the same on every run.
 """
 import os
@@ -181,14 +181,13 @@ def svg(command, output):
 def main():
     with tempfile.TemporaryDirectory() as tmp:
         build(tmp)
-        table, graph = run(tmp), run(tmp, "-g")
+        graph = run(tmp)
     img = os.path.join(ROOT, "docs", "img")
     os.makedirs(img, exist_ok=True)
-    for name, command, output in (("table", "git nearest", table), ("graph", "git nearest -g", graph)):
-        with open(os.path.join(img, name + ".svg"), "w", encoding="utf-8", newline="\n") as f:
-            f.write(svg(command, output))
+    with open(os.path.join(img, "graph.svg"), "w", encoding="utf-8", newline="\n") as f:
+        f.write(svg("git nearest", graph))
     sys.stdout.reconfigure(encoding="utf-8")
-    print("$ git nearest\n" + strip(table) + "\n\n$ git nearest -g\n" + strip(graph))
+    print("$ git nearest\n" + strip(graph))
 
 
 if __name__ == "__main__":
